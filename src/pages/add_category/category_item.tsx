@@ -1,6 +1,8 @@
-import { CategoryInterface } from "../../intefaces/category";
+import { CategoryInterface } from "../../intefaces/categora";
 import { AdminServices } from "../../services/admin";
 import React, { useEffect, useState } from "react";
+import Subcategory from "../add_subcategory/subcategory_item";
+import axios from "axios";
 
 interface CategoryItemProps {
   category: CategoryInterface;
@@ -12,13 +14,16 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
   refreshCategories,
 }) => {
   const [editing, setEditing] = useState(false);
-  const [editedName, setEditedName] = useState(category.name);
+  const [editedName, setEditedName] = useState(category.categoryName);
+  const [open, setOpen] = useState(false);
 
   const handleDelete = async () => {
     try {
-      await AdminServices.deleteCategory(category.id ?? "");
+      // await AdminServices.deleteCategory(category.id ?? "");
+      const response =await axios.delete(`http://localhost:3000/categories/admin/delete/${category.id}`)
       refreshCategories(); // Refresh categories after deletion
       // Perform any additional actions after deletion if needed
+      console.log(response);
     } catch (error) {
       console.error("Error deleting category:", error);
     }
@@ -27,8 +32,9 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
   const handleEdit = async () => {
     try {
       // Perform edit action, for example:
-      const updatedCategory = { ...category, name: editedName };
-      await AdminServices.updateCategory(updatedCategory);
+      const updatedCategory = { ...category, categoryName: editedName };
+      // await AdminServices.updateCategory(updatedCategory);
+      const response=await axios.patch(`http://localhost:3000/categories/admin/update/${category.id}`,updatedCategory)
       // Perform any additional actions after editing if needed
       setEditing(false);
       refreshCategories(); // Exit edit mode
@@ -38,7 +44,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
   };
 
   useEffect(() => {
-    setEditedName(category.name);
+    setEditedName(category.categoryName);
   }, [category]);
 
   return (
@@ -51,7 +57,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
           onChange={(e) => setEditedName(e.target.value)}
         />
       ) : (
-        <span className="text-white">{category.name}</span>
+        <span className="text-white">{category.categoryName}</span>
       )}
       <div>
         {editing ? (
@@ -65,6 +71,8 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
           </>
         ) : (
           <>
+          <button onClick={()=>setOpen(true)}>Add Subcategory</button>
+          {open==true? <Subcategory category={category} onClick={()=>setOpen(false)}/>:null}
             <button onClick={handleDelete} className="text-red-500 mr-2">
               Delete
             </button>

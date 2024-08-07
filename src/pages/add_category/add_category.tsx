@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useFormik } from "formik";
 import { CategoryValidationSchema } from "../../validation/categoryvaliationshema";
 import { AdminServices } from "../../services/admin";
-import { CategoryInterface } from "../../intefaces/category";
+import { CategoryInterface } from "../../intefaces/categora";
 import CategoryItem from "./category_item";
+import axios from "axios";
 
 export const AddCategory = () => {
   const [submitting, setSubmitting] = useState(false);
@@ -13,7 +14,8 @@ export const AddCategory = () => {
   }, []);
   const fetchCategories = async () => {
     try {
-      const response = await AdminServices.getCategories();
+      // const response = await AdminServices.getCategories();
+      const response = await axios.get('http://localhost:3000/categories');
       setCategories(response.data);
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -25,7 +27,7 @@ export const AddCategory = () => {
 
   const formik = useFormik({
     initialValues: {
-      name: "",
+      categoryName: "",
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -35,9 +37,10 @@ export const AddCategory = () => {
       setSubmitting(true);
       console.log(values);
       try {
-        const lowercaseValues = { ...values, name: values.name.toLowerCase() };
+        const lowercaseValues = { ...values, name: values.categoryName.toLowerCase() };
 
-        const result = await AdminServices.createCategory(lowercaseValues);
+        // const result = await AdminServices.createCategory(lowercaseValues);
+        const result =await axios.post('http://localhost:3000/categories/admin',values)
         console.log(result);
         resetForm();
         fetchCategories();
@@ -49,6 +52,7 @@ export const AddCategory = () => {
   });
 
   return (
+    <>
     <form onSubmit={formik.handleSubmit}>
       <div className="p-4 sm:ml-64">
         <div className="p-4 border-2 border-dashed rounded-lg border-gray-700 mt-12">
@@ -61,13 +65,13 @@ export const AddCategory = () => {
                   </label>
                   <input
                     type="text"
-                    value={formik.values.name}
-                    onChange={formik.handleChange("name")}
+                    value={formik.values.categoryName}
+                    onChange={formik.handleChange("categoryName")}
                     placeholder="Enter Category Name"
                     className="w-full rounded-lg border-[1.5px] border-stroke bg-slate-500 px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input"
                   />
-                  {formik.touched.name && formik.errors.name && (
-                    <div className="text-red-500">{formik.errors.name}</div>
+                  {formik.touched.categoryName && formik.errors.categoryName && (
+                    <div className="text-red-500">{formik.errors.categoryName}</div>
                   )}
                 </div>
               </div>
@@ -83,6 +87,9 @@ export const AddCategory = () => {
             Save Category
           </button>
         </div>
+      </div>
+    </form>
+    <div className="p-4 sm:ml-64">
         {categories.map((category) => (
           <CategoryItem
             key={category.id}
@@ -91,6 +98,6 @@ export const AddCategory = () => {
           />
         ))}
       </div>
-    </form>
+    </>
   );
 };

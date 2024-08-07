@@ -1,15 +1,70 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SelectCategory } from "../../components/category_selector";
 import TagInput, { Tag } from "../../components/tag_input";
 import { useFormik } from "formik";
 import { ProductValidationSchema } from "../../validation/productvalidationschema";
+// import { ProductValidationSchema } from "../../validation/productsvalidationschema";
 import { AdminServices } from "../../services/admin";
 import axios from "axios";
 import { ProductInterface } from "@/intefaces/product";
+import { CategoryInterface } from "@/intefaces/categora";
+import { SubcategoryInterface } from "@/intefaces/subcategory";
+import { TypeInterface } from "@/intefaces/type";
+import { VariantInterface } from "@/intefaces/variant";
 
 export const AddProduct = () => {
   const [imageFiles, setImageFiles] = useState<any>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [categories, setcategories] = useState<CategoryInterface[]>([]);
+  const [subcategories, setsubcategories] = useState<SubcategoryInterface[]>(
+    []
+  );
+  const [types, settypes] = useState<TypeInterface[]>([]);
+  const [variants, setvariants] = useState<VariantInterface[]>([]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get(`http://localhost:3000/categories`);
+      setcategories(response.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const fetchSubcategories = async (categoryid: number) => {
+    try {
+      const response = await axios.get(
+        `http://localhost:3000/subcategories/getSubcategoriesByCategory/${categoryid}`
+      );
+      setsubcategories(response.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const fetchTypes = async (subcategoryid: number) => {
+    try {
+      const response = await axios.get(
+        `http://localhost:3000/types/getTypesBySubcategory/${subcategoryid}`
+      );
+      settypes(response.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const fetchVariants = async (typeid: number) => {
+    try {
+      const response = await axios.get(
+        `http://localhost:3000/variants/getVariantsByType/${typeid}`
+      );
+      setvariants(response.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
   const handleFileChange = (e: any) => {
     const files = Array.from(e.target.files);
     if (files.length + imageFiles.length > 5) {
@@ -31,18 +86,31 @@ export const AddProduct = () => {
 
   const formik = useFormik({
     initialValues: {
-      name: "",
+      productName: "",
       price: undefined,
       description: "",
       units: 0,
       tags: [] as Tag[],
-      category: "",
+      // category: "",
       images: [""],
+      category: {
+        id: undefined,
+      },
+      subcategory: {
+        id: undefined,
+      },
+      type: {
+        id: undefined,
+      },
+      variant: {
+        id: undefined,
+      },
       createdAt: new Date(),
       updatedAt: new Date(),
     },
     validationSchema: ProductValidationSchema,
-    onSubmit: async (values: ProductInterface) => {
+    onSubmit: async (values, { resetForm }) => {
+      //values:ProductInterface
       console.log("SUbmiting data");
       setSubmitting(true);
       console.log(values);
@@ -62,13 +130,19 @@ export const AddProduct = () => {
         );
         console.log("Uploaded images:", uploadedImages);
         values.images = uploadedImages;
-        const result = await AdminServices.createProduct(values);
+        // const result = await AdminServices.createProduct(values); //COMMENTING THESE LINES TEMPORARILY
+        // console.log(result);
+        const result = await axios.post(
+          "http://localhost:3000/product/admin",
+          values
+        );
         console.log(result);
       } catch (e) {
         console.log(e);
       }
-      // handleFileChange(values.file);
+      // handleFileChange(values.file); //PREVIOUSLY COMMENTED
       setSubmitting(false);
+      resetForm();
     },
   });
   console.log(submitting);
@@ -78,7 +152,7 @@ export const AddProduct = () => {
       <div className="p-4 sm:ml-64 ">
         <div className="p-4 border-2  border-dashed rounded-lg border-gray-700 mt-12">
           <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
+            {/* <div>
               <SelectCategory
                 value={formik.values.category} // Assuming category is the name of the field
                 onChange={(category) => {
@@ -89,17 +163,127 @@ export const AddProduct = () => {
               {formik.touched.category && formik.errors.category && (
                 <div className="text-red-500">{formik.errors.category}</div>
               )}
-            </div>
-            <div>
-              <TagInput
-                id="TagInput"
-                value={formik.values.tags}
-                onChange={(tags) => formik.setFieldValue("tags", tags)} // Update formik state
-              />{" "}
-              {formik.touched.tags && formik.errors.tags && (
-                <div className="text-red-500">{formik.errors.tags as any}</div>
+            </div> */}
+            <div className="flex flex-col p-1">
+              <label htmlFor="category" className="text-white">
+                Select Category
+              </label>
+              <select
+                name="category.id"
+                id="category"
+                className="p-3 mt-1 bg-transparent rounded-lg border-white border-[1.5px]"
+                value={formik.values.category.id}
+                onChange={(e) => {
+                  formik.handleChange(e);
+                  fetchSubcategories(Number(e.target.value));
+                  settypes([]);
+                }}
+                onBlur={formik.handleBlur}
+              >
+                <option value="" label="Select Category"></option>
+                {categories.map((category) => (
+                  <option value={category.id} key={category.id}>
+                    {category.categoryName}
+                  </option>
+                ))}
+              </select>
+              {formik.touched.category?.id && formik.errors.category && (
+                <div className="text-red-500">
+                  {formik.errors.category.id as any}
+                </div>
               )}
             </div>
+
+            <div className="flex flex-col p-1">
+              <label htmlFor="subcategory" className="text-white">
+                Select Subcategory
+              </label>
+              <select
+                name="subcategory.id"
+                id="subcategory"
+                className="p-3 mt-1 bg-transparent rounded-lg border- border-[1.5px]"
+                value={formik.values.subcategory.id}
+                onChange={(e) => {
+                  formik.handleChange(e);
+                  fetchTypes(Number(e.target.value));
+                  setvariants([]);
+                }}
+                onBlur={formik.handleBlur}
+              >
+                <option value="" label="Select Subcategory"></option>
+                {subcategories.map((subcategory) => (
+                  <option value={subcategory.id} key={subcategory.id}>
+                    {subcategory.subcategoryName}
+                  </option>
+                ))}
+              </select>
+              {formik.touched.subcategory?.id && formik.errors.subcategory && (
+                <div className="text-red-500">
+                  {formik.errors.subcategory.id as any}
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col p-1">
+              <label htmlFor="type" className="text-white">
+                Select Type
+              </label>
+              <select
+                name="type.id"
+                id="type"
+                className="p-3 mt-1 bg-transparent rounded-lg border-white border-[1.5px]"
+                onChange={(e) => {
+                  formik.handleChange(e);
+                  fetchVariants(Number(e.target.value));
+                }}
+                onBlur={formik.handleBlur}
+              >
+                <option value="" label="Select Type"></option>
+                {types.map((type) => (
+                  <option value={type.id} key={type.id}>
+                    {type.typeName}
+                  </option>
+                ))}
+              </select>
+              {formik.touched.type?.id && formik.errors.type && (
+                <div className="text-red-500">
+                  {formik.errors.type.id as any}
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col p-1">
+              <label htmlFor="variant" className="text-white">
+                Select Variant
+              </label>
+              <select
+                name="variant.id"
+                id="variant"
+                className="p-3 mt-1 bg-transparent rounded-lg border-white border-[1.5px]"
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+              >
+                <option value="" label="Select Variant"></option>
+                {variants.map((variant) => (
+                  <option value={variant.id} key={variant.id}>
+                    {variant.variantName}
+                  </option>
+                ))}
+              </select>
+              {formik.touched.variant?.id && formik.errors.variant && (
+                <div className="text-red-500">
+                  {formik.errors.variant.id as any}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="mb-5">
+            <TagInput
+              id="TagInput"
+              value={formik.values.tags}
+              onChange={(tags) => formik.setFieldValue("tags", tags)} // Update formik state
+            />{" "}
+            {formik.touched.tags && formik.errors.tags && (
+              <div className="text-red-500">{formik.errors.tags as any}</div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="rounded-sm ">
@@ -110,13 +294,17 @@ export const AddProduct = () => {
                   </label>
                   <input
                     type="text"
-                    value={formik.values.name}
-                    onChange={(e) => formik.handleChange("name")(e)}
+                    name="productName"
+                    value={formik.values.productName}
+                    onChange={(e) => formik.handleChange("productName")(e)}
+                    onBlur={formik.handleBlur}
                     placeholder="Enter Product Name"
                     className="w-full rounded-lg border-[1.5px] border-stroke bg-slate-500 px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input "
                   />
-                  {formik.touched.name && formik.errors.name && (
-                    <div className="text-red-500">{formik.errors.name}</div>
+                  {formik.touched.productName && formik.errors.productName && (
+                    <div className="text-red-500">
+                      {formik.errors.productName}
+                    </div>
                   )}
                 </div>
               </div>
@@ -131,6 +319,7 @@ export const AddProduct = () => {
                     type="text"
                     value={formik.values.price}
                     onChange={(e) => formik.handleChange("price")(e)}
+                    onBlur={formik.handleBlur}
                     placeholder="Enter Product Price"
                     className="w-full rounded-lg border-[1.5px] border-stroke bg-slate-500 px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input "
                   />
@@ -148,6 +337,7 @@ export const AddProduct = () => {
             <textarea
               rows={6}
               value={formik.values.description}
+              onBlur={formik.handleBlur}
               onChange={(e) => formik.handleChange("description")(e)}
               placeholder="Enter Product Discription"
               className="w-full rounded-lg border-[1.5px] border-stroke bg-slate-500 px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
@@ -166,6 +356,7 @@ export const AddProduct = () => {
                 type="file"
                 accept="image/*"
                 multiple
+                onBlur={formik.handleBlur}
                 onChange={(e) => {
                   formik.setFieldValue("file", e.target.files);
                   handleFileChange(e);
@@ -183,6 +374,7 @@ export const AddProduct = () => {
               <input
                 type="text"
                 value={formik.values.units}
+                onBlur={formik.handleBlur}
                 onChange={(e) => formik.handleChange("units")(e)}
                 placeholder="Enter Units of Product"
                 className="w-full rounded-lg border-[1.5px] border-stroke bg-slate-500 px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input "
