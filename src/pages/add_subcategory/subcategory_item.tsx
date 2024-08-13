@@ -1,10 +1,10 @@
-import { CategoryInterface } from "@/intefaces/categora";
+import { CategoryInterface } from "@/intefaces/category";
 import { SubcategoryInterface } from "@/intefaces/subcategory";
-import axios from "axios";
 import React, { useEffect, useState } from "react";
 import Type from "../add_type/type_item";
 import { useFormik } from "formik";
 import { SubategoryValidationSchema } from "../../validation/subcategoryvalidationschema";
+import { AdminServices } from "../../services/admin";
 
 interface SubcategoryProps {
   category: CategoryInterface;
@@ -16,14 +16,12 @@ const Subcategory: React.FC<SubcategoryProps> = ({ category, onClick }) => {
     []
   );
   const [open, setopen] = useState<number | null>(null);
-  const [isEditing, setisEditing] = useState<number|null>(null);
+  const [subcategoryToBeUpdated, setsubcategoryToBeUpdated] = useState<number|null>(null);
+  const [subcategoryToBeDaleted, setsubcategoryToBeDaleted] = useState<number|null>(null);
   const [editedSubcategory, seteditedSubcategory] = useState<string>("");
   const fetchSubcategories = async (categoryid: number) => {
     try {
-      const response = await axios.get(
-        `http://localhost:3000/subcategories/getSubcategoriesByCategory/${categoryid}`,
-        { headers: { "Content-Type": "application/json" } }
-      );
+      const response=await AdminServices.getSubcategoriesByCategory(categoryid);
       setSubcategories(response.data);
     } catch (error) {
       console.log(error);
@@ -43,15 +41,8 @@ const Subcategory: React.FC<SubcategoryProps> = ({ category, onClick }) => {
     validationSchema:SubategoryValidationSchema,
     onSubmit: async (values, { resetForm }) => {
       try {
-        const response = await axios.post(
-          "http://localhost:3000/subcategories/admin",
-          values,
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        const lowercasevalues={...values,subcategoryName:values.subcategoryName.toLowerCase()};
+        const response=await AdminServices.createSubcategory(lowercasevalues)
         console.log(response);
         resetForm();
         fetchSubcategories(Number(category.id));
@@ -65,7 +56,7 @@ const Subcategory: React.FC<SubcategoryProps> = ({ category, onClick }) => {
 
   const handleDelete=async(subcategoryid:number)=>{
     try {
-      const response=await axios.delete(`http://localhost:3000/subcategories/admin/delete/${subcategoryid}`);
+      const response =await AdminServices.deleteSubcategory(subcategoryid);
       console.log(response);
       fetchSubcategories(Number(category.id));
     } catch (error) {
@@ -75,32 +66,33 @@ const Subcategory: React.FC<SubcategoryProps> = ({ category, onClick }) => {
 
   const handleEdit=async(subcategory:SubcategoryInterface)=>{
     try {
-      const response =await axios.patch(`http://localhost:3000/subcategories/admin/update/${subcategory.id}`,subcategory);
+      const response =await AdminServices.updateSubcategory(subcategory);
       console.log(response);
       fetchSubcategories(Number(category.id));
-      setisEditing(null);
+      setsubcategoryToBeUpdated(null);
     } catch (error) {
       console.log(error);
     }
   }
 
   return (
-    <div className="w-svw h-svh overflow-auto bg-slate-600 fixed top-10 left-64 p-5">
+    <div className="fixed overflow-y-auto inset-0 top-10 sm:left-64">
+    <div className=" bg-slate-600 p-3">
       <button
         onClick={onClick}
-        className="py-2 px-5 bg-white text-zinc-800 mb-3"
+        className="py-2 px-6 bg-slate-400 text-white font-bold  mb-3 shadow-md hover:shadow-lg rounded shadow-slate-300 hover:shadow-slate-300 hover:scale-105 transition-all ease-in-out duration-500"
       >
-        Close
+        Exit
       </button>
       <div>
-        <h1 className="w-3/4 text-center">Category : {category.categoryName}</h1>
+        <h1 className="text-center">Category : {category.categoryName}</h1>
       </div>
       <form
         onSubmit={(e) => {
           e.preventDefault();
           formik.handleSubmit(e);
         }}
-        className="w-3/4 flex flex-col p-5 border-dotted rounded-lg border-2 gap-3 my-5"
+        className="w-full flex flex-col p-4 border-dotted m-1 rounded-lg border-2 gap-3 my-5"
       >
         <label htmlFor="subcategory">Subcategory Name</label>
         <input
@@ -127,19 +119,19 @@ const Subcategory: React.FC<SubcategoryProps> = ({ category, onClick }) => {
         />
         <button
           type="submit"
-          className="bg-teal-400 p-2 rounded-lg w-max mx-auto text-zinc-800"
+          className="bg-teal-400 shadow-sm hover:shadow-md  shadow-teal-100 hover:shadow-teal-100 py-2 px-4 rounded-lg w-max mx-auto text-zinc-800 transition-all duration-500 ease-in-out hover:scale-105"
         >
           Save Subcategory
         </button>
       </form>
-      <div className="h-80 overflow-auto mb-3">
+      <div style={{height:'40vh'}}>
         {subcategories.map((subcategory) => (
           <div
             key={subcategory.id}
-            className="flex items-center gap-56 border-b border-gray-500 "
+            className="flex items-center justify-between border-b border-gray-500 "
           >
-            <h1 className="w-5/12 p-3">
-              {isEditing == subcategory.id ? (
+            <h1 className="p-3">
+              {subcategoryToBeUpdated == subcategory.id ? (
                 <input
                   value={editedSubcategory}
                   className="text-white rounded-md p-2 bg-zinc-800"
@@ -151,25 +143,27 @@ const Subcategory: React.FC<SubcategoryProps> = ({ category, onClick }) => {
                 <>{subcategory.subcategoryName}</>
               )}
             </h1>
-            <div className="flex gap-3">
+            <div className="flex gap-3 justify-center">
               <button onClick={() => setopen(Number(subcategory.id))}>
                 Add Type
               </button>
               {open === subcategory.id ? (
                 <Type subcategory={subcategory} onClick={() => setopen(null)} />
               ) : null}
-              {isEditing != subcategory.id ? (
+              {subcategoryToBeUpdated != subcategory.id ? (
                 <>
                   <button
-                    onClick={() => {
-                      handleDelete(Number(subcategory.id));
-                    }}
+                    // onClick={() => {
+                    //   handleDelete(Number(subcategory.id));
+                    // }}
+                    onClick={()=>setsubcategoryToBeDaleted(Number(subcategory.id))}
                     className="text-red-500"
                   >
                     Delete
                   </button>
+                  {subcategoryToBeDaleted === subcategory.id ? <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"><div className="bg-white p-6 rounded-lg shadow-lg"><span className="text-zinc-700">Deleting the subcategory {subcategory.subcategoryName} will delete all its types, variants and products.</span><div className="mt-4 flex justify-end space-x-2"><button className="px-4 py-2 bg-red-500 text-white rounded" onClick={()=>handleDelete(Number(subcategoryToBeDaleted))}>Delete</button><button className="px-4 py-2 bg-gray-300 rounded" onClick={()=>setsubcategoryToBeDaleted(null)}>Cancel</button></div></div></div> : null}
                   <button onClick={()=>{
-                    setisEditing(Number(subcategory.id));
+                    setsubcategoryToBeUpdated(Number(subcategory.id));
                     seteditedSubcategory(subcategory.subcategoryName)
                   }} className="text-blue-500">Edit</button>
                 </>
@@ -178,14 +172,15 @@ const Subcategory: React.FC<SubcategoryProps> = ({ category, onClick }) => {
                   <button onClick={()=>{
                     subcategory.subcategoryName=editedSubcategory;
                     handleEdit(subcategory);
-                  }}>Save</button>
-                  <button onClick={()=>{setisEditing(null)}}>Cancel</button>
+                  }} className="text-blue-500">Save</button>
+                  <button onClick={()=>{setsubcategoryToBeUpdated(null)}} className="text-gray-300">Cancel</button>
                 </>
               )}
             </div>
           </div>
         ))}
       </div>
+    </div>
     </div>
   );
 };

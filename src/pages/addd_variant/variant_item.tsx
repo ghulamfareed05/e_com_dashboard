@@ -1,9 +1,10 @@
 import { TypeInterface } from "@/intefaces/type";
 import { VariantInterface } from "@/intefaces/variant";
-import axios from "axios";
 import { useFormik } from "formik";
 import React, { useEffect, useState } from "react";
 import { VariantValidationSchema } from "../../validation/variantvalidationschema";
+import { AdminServices } from "../../services/admin";
+
 
 interface VariantProps {
   type: TypeInterface;
@@ -12,14 +13,12 @@ interface VariantProps {
 
 const Variant: React.FC<VariantProps> = ({ type, onClick }) => {
   const [variants, setVariants] = useState<VariantInterface[]>([]);
-  const [isEditing, setisEditing] = useState<Number | null>(null);
+  const [variantToBeUpdated, setvariantToBeUpdated] = useState<Number | null>(null);
   const [editedVariant, seteditedVariant] = useState<string>("");
+  const [variantToBeDeleted, setvariantToBeDeleted] = useState<Number|null>(null);
   const fetchVariants = async (typeid: number) => {
     try {
-      const response = await axios.get(
-        `http://localhost:3000/variants/getVariantsByType/${typeid}`,
-        { headers: { "Content-Type": "application/json" } }
-      );
+      const response=await AdminServices.getVariantsByType(typeid);
       setVariants(response.data);
     } catch (error) {
       console.log(error);
@@ -39,18 +38,16 @@ const Variant: React.FC<VariantProps> = ({ type, onClick }) => {
     validationSchema: VariantValidationSchema,
     onSubmit: async (values, { resetForm }) => {
       try {
-        const response = await axios.post(
-          "http://localhost:3000/variants/admin",
-          values,
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        const lowercasevalues={...values,variantName:values.variantName.toLowerCase()};
+        const response =await AdminServices.createVariant(lowercasevalues);
         resetForm();
         console.log(response);
         fetchVariants(Number(type.id));
+        if(!response.error)
+        {
+          alert(`Variant created successfully`);
+        }
+        
       } catch (error) {
         console.log(error);
       }
@@ -60,9 +57,7 @@ const Variant: React.FC<VariantProps> = ({ type, onClick }) => {
 
   const handleDelete = async (variantid: number) => {
     try {
-      const response = await axios.delete(
-        `http://localhost:3000/variants/admin/delete/${variantid}`
-      );
+      const response=await AdminServices.deleteVariant(variantid);
       console.log(response);
       fetchVariants(Number(type.id));
     } catch (error) {
@@ -72,32 +67,30 @@ const Variant: React.FC<VariantProps> = ({ type, onClick }) => {
 
   const handleEdit = async (variant: VariantInterface) => {
     try {
-      const response = await axios.patch(
-        `http://localhost:3000/variants/admin/update/${variant.id}`,
-        variant
-      );
+      const response =await AdminServices.updateVariant(variant);
       console.log(response);
       fetchVariants(Number(type.id));
-      setisEditing(null);
+      setvariantToBeUpdated(null);
     } catch (error) {
       console.log(error);
     }
   };
 
   return (
-    <div className="w-svw h-svh bg-slate-600 fixed top-10 left-64 p-5">
+    <div className="fixed inset-0 top-10 sm:left-64 overflow-y-auto">
+    <div className="bg-slate-600 p-3">
       <button
         onClick={onClick}
-        className="py-2 px-5 bg-white text-zinc-800 mb-3"
+        className="py-2 px-6 bg-slate-400 text-white font-bold  mb-3 shadow-md hover:shadow-lg rounded shadow-slate-300 hover:shadow-slate-300 hover:scale-105 transition-all ease-in-out duration-500"
       >
-        Close
+        Exit
       </button>
       <div>
-        <h1 className="w-3/4 text-center">Type : {type.typeName}</h1>
+        <h1 className="text-center">Type : {type.typeName}</h1>
       </div>
       <form
         onSubmit={formik.handleSubmit}
-        className="w-3/4 flex flex-col p-5 border-dotted rounded-lg border-2 gap-3 my-5"
+        className="w-full flex flex-col p-4 m-1 border-dotted rounded-lg border-2 gap-3 my-5"
       >
         <label htmlFor="variant">Variant Name</label>
         <input
@@ -124,19 +117,19 @@ const Variant: React.FC<VariantProps> = ({ type, onClick }) => {
         />
         <button
           type="submit"
-          className="bg-teal-400 p-2 rounded-lg w-max mx-auto text-zinc-800"
+          className="bg-teal-400 shadow-sm hover:shadow-md  shadow-teal-100 hover:shadow-teal-100 py-2 px-4 rounded-lg w-max mx-auto text-zinc-800 transition-all duration-500 ease-in-out hover:scale-105"
         >
           Save Variant
         </button>
       </form>
-      <div className="h-80 overflow-auto mb-3">
+      <div style={{height:'40vh'}}>
         {variants.map((variant) => (
           <div
             key={variant.id}
-            className="flex items-center gap-56 border-b border-gray-500 "
+            className="flex items-center justify-between border-b border-gray-500 "
           >
             <h1 className="w-5/12 p-3">
-              {isEditing == variant.id ? (
+              {variantToBeUpdated == variant.id ? (
                 <input
                   value={editedVariant}
                   className="text-white bg-zinc-800 p-2  rounded-md"
@@ -149,19 +142,21 @@ const Variant: React.FC<VariantProps> = ({ type, onClick }) => {
               )}
             </h1>
             <div className="flex gap-3">
-              {isEditing != variant.id ? (
+              {variantToBeUpdated != variant.id ? (
                 <>
                   <button
-                    onClick={() => {
-                      handleDelete(Number(variant.id));
-                    }}
+                    // onClick={() => {
+                    //   handleDelete(Number(variant.id));
+                    // }}
+                    onClick={()=>setvariantToBeDeleted(Number(variant.id))}
                     className="text-red-500"
                   >
                     Delete
                   </button>
+                  {variantToBeDeleted === variant.id ? <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"><div className="bg-white p-6 rounded-lg shadow-lg"><span className="text-zinc-800">Are you sure you want to delete the variant {variant.variantName} and all its products?</span><div className="mt-4 flex justify-end space-x-2"><button className="px-4 py-2 bg-red-500 text-white rounded" onClick={()=>handleDelete(Number(variantToBeDeleted))}>Delete</button><button className="px-4 py-2 bg-gray-300 rounded" onClick={()=>setvariantToBeDeleted(null)}>Cancel</button></div></div></div> : null}
                   <button
                     onClick={() => {
-                      setisEditing(Number(variant.id));
+                      setvariantToBeUpdated(Number(variant.id));
                       seteditedVariant(variant.variantName);
                     }}
                     className="text-blue-500"
@@ -176,13 +171,15 @@ const Variant: React.FC<VariantProps> = ({ type, onClick }) => {
                       variant.variantName = editedVariant;
                       handleEdit(variant);
                     }}
+                    className="text-blue-500"
                   >
                     Save
                   </button>
                   <button
                     onClick={() => {
-                      setisEditing(null);
+                      setvariantToBeUpdated(null);
                     }}
+                    className="text-gray-300"
                   >
                     Cancel
                   </button>
@@ -192,6 +189,7 @@ const Variant: React.FC<VariantProps> = ({ type, onClick }) => {
           </div>
         ))}
       </div>
+    </div>
     </div>
   );
 };

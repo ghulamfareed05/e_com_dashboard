@@ -1,6 +1,7 @@
 
 import * as Yup from 'yup';
 
+
 export const ProductValidationSchema = Yup.object().shape({
     category: Yup.object().shape({
         id: Yup.number().required('Category is required'),
@@ -9,10 +10,9 @@ export const ProductValidationSchema = Yup.object().shape({
         id: Yup.number().required('Subcategory is required'),
       }),
       type: Yup.object().shape({
-        id: Yup.number().required('Type is required'),
+        id: Yup.number().nullable(),
       }),
       variant: Yup.object().shape({
-        // id: Yup.number().required('Variant is required'),
         id: Yup.number().nullable(),
       }),
     tags: Yup.array().min(1, 'At least one tag is required'),

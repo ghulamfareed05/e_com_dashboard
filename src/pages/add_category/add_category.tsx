@@ -2,9 +2,8 @@ import { useEffect, useState } from "react";
 import { useFormik } from "formik";
 import { CategoryValidationSchema } from "../../validation/categoryvaliationshema";
 import { AdminServices } from "../../services/admin";
-import { CategoryInterface } from "../../intefaces/categora";
+import { CategoryInterface } from "../../intefaces/category";
 import CategoryItem from "./category_item";
-import axios from "axios";
 
 export const AddCategory = () => {
   const [submitting, setSubmitting] = useState(false);
@@ -14,8 +13,7 @@ export const AddCategory = () => {
   }, []);
   const fetchCategories = async () => {
     try {
-      // const response = await AdminServices.getCategories();
-      const response = await axios.get('http://localhost:3000/categories');
+      const response = await AdminServices.getCategories();
       setCategories(response.data);
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -37,10 +35,9 @@ export const AddCategory = () => {
       setSubmitting(true);
       console.log(values);
       try {
-        const lowercaseValues = { ...values, name: values.categoryName.toLowerCase() };
+        const lowercaseValues = { ...values, categoryName: values.categoryName.toLowerCase() };
 
-        // const result = await AdminServices.createCategory(lowercaseValues);
-        const result =await axios.post('http://localhost:3000/categories/admin',values)
+        const result = await AdminServices.createCategory(lowercaseValues);
         console.log(result);
         resetForm();
         fetchCategories();

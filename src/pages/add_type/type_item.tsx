@@ -1,10 +1,11 @@
 import { SubcategoryInterface } from "@/intefaces/subcategory";
 import { TypeInterface } from "@/intefaces/type";
-import axios from "axios";
 import React, { useEffect, useState } from "react";
 import Variant from "../addd_variant/variant_item";
 import { useFormik } from "formik";
 import { TypeValidationSchema } from "../../validation/typevalidationschema";
+import { AdminServices } from "../../services/admin";
+
 
 interface TypeProps {
   subcategory: SubcategoryInterface;
@@ -14,14 +15,12 @@ interface TypeProps {
 const Type: React.FC<TypeProps> = ({ subcategory, onClick }) => {
   const [types, setTypes] = useState<TypeInterface[]>([]);
   const [open, setopen] = useState<number | null>(null);
-  const [isEditing, setisEditing] = useState<Number | null>(null);
+  const [typeToBeUpdated, settypeToBeUpdated] = useState<Number | null>(null);
+  const [typeToBeDeleted, settypeToBeDeleted] = useState<Number|null>(null);
   const [editedType, seteditedType] = useState<string>("");
   const fetchTypes = async (subcategoryid: number) => {
     try {
-      const response = await axios.get(
-        `http://localhost:3000/types/getTypesBySubcategory/${subcategoryid}`,
-        { headers: { "Content-Type": "application/json" } }
-      );
+      const response =await AdminServices.getTypesBySubcategory(subcategoryid);
       setTypes(response.data);
     } catch (error) {
       console.log(error);
@@ -41,15 +40,8 @@ const Type: React.FC<TypeProps> = ({ subcategory, onClick }) => {
     validationSchema: TypeValidationSchema,
     onSubmit: async (values, { resetForm }) => {
       try {
-        const response = await axios.post(
-          "http://localhost:3000/types/admin",
-          values,
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        const lowercasevalues={...values,typeName:values.typeName.toLowerCase()};
+        const response =await AdminServices.createType(lowercasevalues);
         console.log(response);
         resetForm();
         fetchTypes(Number(subcategory.id));
@@ -62,9 +54,7 @@ const Type: React.FC<TypeProps> = ({ subcategory, onClick }) => {
 
   const handleDelete = async (typeid: number) => {
     try {
-      const response = await axios.delete(
-        `http://localhost:3000/types/admin/delete/${typeid}`
-      );
+      const response=await AdminServices.deleteType(typeid);
       console.log(response);
       fetchTypes(Number(subcategory.id));
     } catch (error) {
@@ -74,34 +64,32 @@ const Type: React.FC<TypeProps> = ({ subcategory, onClick }) => {
 
   const handleEdit = async (type: TypeInterface) => {
     try {
-      const response = await axios.patch(
-        `http://localhost:3000/types/admin/update/${type.id}`,
-        type
-      );
+      const response =await AdminServices.updateType(type);
       console.log(response);
       fetchTypes(Number(subcategory.id));
-      setisEditing(null);
+      settypeToBeUpdated(null);
     } catch (error) {
       console.log(error);
     }
   };
 
   return (
-    <div className="w-svw h-svh bg-slate-600 fixed top-10 left-64 p-5">
+    <div className="fixed inset-0 top-10 sm:left-64 overflow-y-auto">
+    <div className="bg-slate-600 p-3">
       <button
         onClick={onClick}
-        className="py-2 px-5 bg-white text-zinc-800 mb-3"
+        className="py-2 px-6 bg-slate-400 text-white font-bold  mb-3 shadow-md hover:shadow-lg rounded shadow-slate-300 hover:shadow-slate-300 hover:scale-105 transition-all ease-in-out duration-500"
       >
-        Close
+        Exit
       </button>
       <div>
-        <h1 className="w-3/4 text-center">
+        <h1 className="text-center">
           Subcategory : {subcategory.subcategoryName}
         </h1>
       </div>
       <form
         onSubmit={formik.handleSubmit}
-        className="w-3/4 flex flex-col p-5 border-dotted rounded-lg border-2 gap-3 my-5"
+        className="w-full flex flex-col p-4 m-1 border-dotted rounded-lg border-2 gap-3 my-5"
       >
         <label htmlFor="type">Type Name</label>
         <input
@@ -128,19 +116,19 @@ const Type: React.FC<TypeProps> = ({ subcategory, onClick }) => {
         />
         <button
           type="submit"
-          className="bg-teal-400 p-2 rounded-lg w-max mx-auto text-zinc-800"
+          className="bg-teal-400 shadow-sm hover:shadow-md  shadow-teal-100 hover:shadow-teal-100 py-2 px-4 rounded-lg w-max mx-auto text-zinc-800 transition-all duration-500 ease-in-out hover:scale-105"
         >
-          Save Subcategory
+          Save Type
         </button>
       </form>
-      <div className="h-80 overflow-auto mb-3">
+      <div style={{height:'40vh'}}>
         {types.map((type) => (
           <div
             key={type.id}
-            className="flex items-center gap-56 border-b border-gray-500 "
+            className="flex items-center justify-between border-b border-gray-500 "
           >
             <h1 className="w-5/12 p-3">
-              {isEditing == type.id ? (
+              {typeToBeUpdated == type.id ? (
                 <input
                   value={editedType}
                   className="text-white bg-zinc-800 p-2 rounded-md"
@@ -159,19 +147,21 @@ const Type: React.FC<TypeProps> = ({ subcategory, onClick }) => {
               {open === type.id ? (
                 <Variant type={type} onClick={() => setopen(null)} />
               ) : null}
-              {isEditing != type.id ? (
+              {typeToBeUpdated != type.id ? (
                 <>
                   <button
-                    onClick={() => {
-                      handleDelete(Number(type.id));
-                    }}
+                    // onClick={() => {
+                    //   handleDelete(Number(type.id));
+                    // }}
+                    onClick={()=>settypeToBeDeleted(Number(type.id))}
                     className="text-red-500"
                   >
                     Delete
                   </button>
+                  {typeToBeDeleted === type.id ? <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"><div className="bg-white p-6 rounded-lg shadow-lg"><span className="text-zinc-700">Deleting the type {type.typeName} will delete all its variants and products.</span><div className="mt-4 flex justify-end space-x-2"><button className="px-4 py-2 bg-red-500 text-white rounded" onClick={()=>handleDelete(Number(typeToBeDeleted))}>Delete</button><button className="px-4 py-2 bg-gray-300 rounded" onClick={()=>settypeToBeDeleted(null)}>Cancel</button></div></div></div> : null}
                   <button
                     onClick={() => {
-                      setisEditing(Number(type.id));
+                      settypeToBeUpdated(Number(type.id));
                       seteditedType(type.typeName);
                     }}
                     className="text-blue-500"
@@ -186,13 +176,15 @@ const Type: React.FC<TypeProps> = ({ subcategory, onClick }) => {
                       type.typeName = editedType;
                       handleEdit(type);
                     }}
+                    className="text-blue-500"
                   >
                     Save
                   </button>
                   <button
                     onClick={() => {
-                      setisEditing(null);
+                      settypeToBeUpdated(null);
                     }}
+                    className="text-gray-300"
                   >
                     Cancel
                   </button>
@@ -202,6 +194,7 @@ const Type: React.FC<TypeProps> = ({ subcategory, onClick }) => {
           </div>
         ))}
       </div>
+    </div>
     </div>
   );
 };

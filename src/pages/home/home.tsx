@@ -36,11 +36,11 @@ export const Home = () => {
       <div className="bg-slate-600">
         <button
           onClick={toggleSidebar}
-          className="inline-flex items-center p-2 mt-2 ms-3 text-sm text-white rounded-lg sm:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
+          className="inline-flex items-center p-2 mt-12 ms-3 text-md rounded-lg sm:hidden  focus:outline-none text-white  dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
         >
           <span className="sr-only">Toggle sidebar</span>
           <svg
-            className="w-6 h-6"
+            className="w-8 h-8"
             aria-hidden="true"
             fill="currentColor"
             viewBox="0 0 20 20"
@@ -55,7 +55,7 @@ export const Home = () => {
         </button>
 
         <aside
-          className={`fixed top-0 left-0 z-40 w-64 h-screen transition-transform mt-12 ${
+          className={`fixed top-11 sm:top-0 left-0 z-40 sm:w-64 h-screen transition-transform mt-12 ${
             isOpen ? "translate-x-0" : "-translate-x-full"
           } sm:translate-x-0`}
           aria-label="Sidebar"
@@ -64,7 +64,7 @@ export const Home = () => {
             <ul className="space-y-2 font-medium">
               <li>
                 <a
-                  onClick={() => handleMenuItemClick("Dashboard")}
+                  onClick={() => {handleMenuItemClick("Dashboard"); toggleSidebar()}}
                   className={`flex items-center p-2 cursor-pointer rounded-lg ${
                     selectedMenuItem === "Dashboard"
                       ? "bg-purple-400 text-black"
@@ -143,7 +143,7 @@ export const Home = () => {
               </li>
               <li>
                 <a
-                  onClick={() => handleMenuItemClick("Add Category")}
+                  onClick={() => {handleMenuItemClick("Add Category"); toggleSidebar();}}
                   className={`flex items-center p-2 cursor-pointer rounded-lg ${
                     selectedMenuItem === "Add Category"
                       ? "bg-purple-400 text-black"
@@ -167,7 +167,7 @@ export const Home = () => {
 
               <li>
                 <a
-                  onClick={() => handleMenuItemClick("Add Products")}
+                  onClick={() => {handleMenuItemClick("Add Products");toggleSidebar();}}
                   className={`flex items-center p-2 cursor-pointer rounded-lg ${
                     selectedMenuItem === "Add Products"
                       ? "bg-purple-400 text-black"
@@ -190,7 +190,7 @@ export const Home = () => {
               </li>
               <li>
                 <a
-                  onClick={() => handleMenuItemClick("View Products")}
+                  onClick={() => {handleMenuItemClick("View Products");toggleSidebar()}}
                   className={`flex items-center p-2 cursor-pointer rounded-lg ${
                     selectedMenuItem === "View Products"
                       ? "bg-purple-400 text-black"

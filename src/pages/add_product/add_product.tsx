@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
-import { SelectCategory } from "../../components/category_selector";
 import TagInput, { Tag } from "../../components/tag_input";
 import { useFormik } from "formik";
 import { ProductValidationSchema } from "../../validation/productvalidationschema";
-// import { ProductValidationSchema } from "../../validation/productsvalidationschema";
 import { AdminServices } from "../../services/admin";
 import axios from "axios";
-import { ProductInterface } from "@/intefaces/product";
-import { CategoryInterface } from "@/intefaces/categora";
+import { CategoryInterface } from "@/intefaces/category";
 import { SubcategoryInterface } from "@/intefaces/subcategory";
 import { TypeInterface } from "@/intefaces/type";
 import { VariantInterface } from "@/intefaces/variant";
@@ -16,15 +13,13 @@ export const AddProduct = () => {
   const [imageFiles, setImageFiles] = useState<any>([]);
   const [submitting, setSubmitting] = useState(false);
   const [categories, setcategories] = useState<CategoryInterface[]>([]);
-  const [subcategories, setsubcategories] = useState<SubcategoryInterface[]>(
-    []
-  );
+  const [subcategories, setsubcategories] = useState<SubcategoryInterface[]>([]);
   const [types, settypes] = useState<TypeInterface[]>([]);
   const [variants, setvariants] = useState<VariantInterface[]>([]);
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get(`http://localhost:3000/categories`);
+      const response =await AdminServices.getCategories();
       setcategories(response.data);
     } catch (error) {
       console.log(error);
@@ -32,9 +27,7 @@ export const AddProduct = () => {
   };
   const fetchSubcategories = async (categoryid: number) => {
     try {
-      const response = await axios.get(
-        `http://localhost:3000/subcategories/getSubcategoriesByCategory/${categoryid}`
-      );
+      const response =await AdminServices.getSubcategoriesByCategory(categoryid);
       setsubcategories(response.data);
     } catch (error) {
       console.log(error);
@@ -42,9 +35,7 @@ export const AddProduct = () => {
   };
   const fetchTypes = async (subcategoryid: number) => {
     try {
-      const response = await axios.get(
-        `http://localhost:3000/types/getTypesBySubcategory/${subcategoryid}`
-      );
+      const response =await AdminServices.getTypesBySubcategory(subcategoryid);
       settypes(response.data);
     } catch (error) {
       console.log(error);
@@ -52,9 +43,7 @@ export const AddProduct = () => {
   };
   const fetchVariants = async (typeid: number) => {
     try {
-      const response = await axios.get(
-        `http://localhost:3000/variants/getVariantsByType/${typeid}`
-      );
+      const response =await AdminServices.getVariantsByType(typeid);
       setvariants(response.data);
     } catch (error) {
       console.log(error);
@@ -84,6 +73,7 @@ export const AddProduct = () => {
     setImageFiles(updatedImages);
   };
 
+
   const formik = useFormik({
     initialValues: {
       productName: "",
@@ -108,8 +98,9 @@ export const AddProduct = () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     },
+    
     validationSchema: ProductValidationSchema,
-    onSubmit: async (values, { resetForm }) => {
+    onSubmit: async (values) => {
       //values:ProductInterface
       console.log("SUbmiting data");
       setSubmitting(true);
@@ -130,19 +121,13 @@ export const AddProduct = () => {
         );
         console.log("Uploaded images:", uploadedImages);
         values.images = uploadedImages;
-        // const result = await AdminServices.createProduct(values); //COMMENTING THESE LINES TEMPORARILY
-        // console.log(result);
-        const result = await axios.post(
-          "http://localhost:3000/product/admin",
-          values
-        );
+        const result = await AdminServices.createProduct(values); 
         console.log(result);
       } catch (e) {
         console.log(e);
       }
       // handleFileChange(values.file); //PREVIOUSLY COMMENTED
       setSubmitting(false);
-      resetForm();
     },
   });
   console.log(submitting);
@@ -206,6 +191,7 @@ export const AddProduct = () => {
                 onChange={(e) => {
                   formik.handleChange(e);
                   fetchTypes(Number(e.target.value));
+                  // setsubcategoryid(Number(e.target.value));
                   setvariants([]);
                 }}
                 onBlur={formik.handleBlur}
@@ -234,6 +220,7 @@ export const AddProduct = () => {
                 onChange={(e) => {
                   formik.handleChange(e);
                   fetchVariants(Number(e.target.value));
+                  // settypeid(Number(e.target.value));
                 }}
                 onBlur={formik.handleBlur}
               >
@@ -317,6 +304,7 @@ export const AddProduct = () => {
                   </label>
                   <input
                     type="text"
+                    name="price"
                     value={formik.values.price}
                     onChange={(e) => formik.handleChange("price")(e)}
                     onBlur={formik.handleBlur}
@@ -337,6 +325,7 @@ export const AddProduct = () => {
             <textarea
               rows={6}
               value={formik.values.description}
+              name="description"
               onBlur={formik.handleBlur}
               onChange={(e) => formik.handleChange("description")(e)}
               placeholder="Enter Product Discription"
@@ -354,6 +343,7 @@ export const AddProduct = () => {
               </label>
               <input
                 type="file"
+                name="images"
                 accept="image/*"
                 multiple
                 onBlur={formik.handleBlur}
@@ -375,6 +365,7 @@ export const AddProduct = () => {
                 type="text"
                 value={formik.values.units}
                 onBlur={formik.handleBlur}
+                name="units"
                 onChange={(e) => formik.handleChange("units")(e)}
                 placeholder="Enter Units of Product"
                 className="w-full rounded-lg border-[1.5px] border-stroke bg-slate-500 px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input "
@@ -456,7 +447,7 @@ export const AddProduct = () => {
                   className="max-h-full max-w-full object-fill "
                 />
                 <button
-                  className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full"
+                  className="absolute top-0 right-0 bg-red-500 text-white py-1 px-3  rounded-full"
                   onClick={(e) => removeImage(index, e)}
                 >
                   X

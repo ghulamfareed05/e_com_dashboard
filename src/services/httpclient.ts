@@ -56,9 +56,27 @@ export class HttpClient {
       return { error: e };
     }
   }
-  static async put(url: string, data: any) {
+  // static async put(url: string, data: any) {
+  //   try {
+  //     const response = await axios.put(this.baseUrl+url, data, {
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //     });
+
+  //     if (response?.status === 200) {
+  //       return { data: response.data };
+  //     } else {
+  //       return { error: response?.data?.error };
+  //     }
+  //   } catch (e) {
+  //     return { error: e };
+  //   }
+  // }
+
+  static async patch(url: string, data: any) {
     try {
-      const response = await axios.put(this.baseUrl+url, data, {
+      const response = await axios.patch(this.baseUrl+url, data, {
         headers: {
           "Content-Type": "application/json",
         },
